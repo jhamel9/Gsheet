@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symbiote Exam Protocol</title>
+    <!-- Use Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for the exam interface and modals */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0D0D0D;
+            background-image: radial-gradient(circle at center, rgba(169, 34, 34, 0.3) 0%, transparent 25%),
+                              radial-gradient(circle at center, rgba(169, 34, 34, 0.3) 0%, transparent 25%),
+                              radial-gradient(circle at center, rgba(169, 34, 34, 0.3) 0%, transparent 25%);
+            background-repeat: no-repeat;
+            background-size: 80px 80px;
+            color: #E5E5E5;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .venom-title {
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 2px;
+        }
+
+        .card {
+            background-color: #1A1A1A;
+            border: 2px solid #A92222;
+            transition: all 0.3s ease-in-out;
+            animation: pulse-border 2s infinite ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(169, 34, 34, 0.5);
+            animation-play-state: paused;
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .modal-content {
+            animation: fadeIn 0.3s ease-out;
+            background-color: #1A1A1A;
+            border: 2px solid #A92222;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: #A92222; box-shadow: 0 0 5px rgba(169, 34, 34, 0.5); }
+            50% { border-color: #FF0000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.7); }
+            100% { border-color: #A92222; box-shadow: 0 0 5px rgba(169, 34, 34, 0.5); }
+        }
+
+        /* Hide scrollbars for a cleaner look */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+
+        /* Custom scrollbar for question container if needed */
+        #question-container {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #question-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #question-container::-webkit-scrollbar-track {
+            background: #222;
+        }
+        #question-container::-webkit-scrollbar-thumb {
+            background-color: #A92222;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="card p-8 rounded-xl shadow-2xl w-full max-w-2xl text-center transition-opacity duration-500">
+        <h1 class="text-6xl font-extrabold text-white mb-4 venom-title">Symbiote Exam Protocol</h1>
+        <p class="text-lg text-gray-400 mb-8">Initiate the bond. Your mental fortitude will be tested. Read the terms before proceeding.</p>
+        <div class="text-left p-6 rounded-lg mb-8" style="background-color: #111;">
+            <h2 class="text-xl font-bold text-gray-200 mb-2">Protocol Rules:</h2>
+            <ul class="list-disc list-inside text-gray-400 space-y-2">
+                <li>The test begins upon "Start".</li>
+                <li>Full screen mode is mandatory. Any attempt to exit or switch windows will be detected.</li>
+                <li>Restricted shortcuts (right-click, copy, paste, etc.) are disabled.</li>
+                <li>The symbiotic timer will not pause.</li>
+                <li>Answers are submitted and saved instantly.</li>
+            </ul>
+        </div>
+        <button id="start-button" class="bg-red-800 hover:bg-red-900 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105">
+            Bond and Begin
+        </button>
+    </div>
+
+    <!-- Exam Screen -->
+    <div id="exam-screen" class="hidden w-full h-full p-4 transition-opacity duration-500 flex flex-col items-center">
+        <!-- Header with Timer and Score -->
+        <div class="card w-full max-w-2xl rounded-xl shadow-lg p-6 mb-6 flex justify-between items-center">
+            <div class="text-xl font-semibold text-gray-200">Time Left: <span id="timer" class="text-red-500 font-bold"></span></div>
+            <div class="text-xl font-semibold text-gray-200">Score: <span id="score" class="text-green-600 font-bold">0</span></div>
+        </div>
+
+        <!-- Question Container -->
+        <div id="question-container" class="card w-full max-w-2xl rounded-xl shadow-lg p-8">
+            <!-- Question content will be rendered here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Violation Modal -->
+    <div id="violation-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+        <div class="modal-content p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-3xl font-bold text-red-600 mb-4">Violation Detected!</h2>
+            <p class="text-gray-400 text-lg mb-6">You have breached the protocol. The symbiote is displeased.</p>
+            <p class="text-gray-500 text-sm mb-4">You have 8 seconds to return or face termination.</p>
+            <div class="flex flex-col space-y-4">
+                <button id="continue-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-md transition-all duration-300">
+                    Continue Protocol
+                </button>
+                <button id="exit-button" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-full shadow-md transition-all duration-300">
+                    Terminate Protocol
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="fixed inset-0 z-40 hidden flex items-center justify-center modal-overlay">
+        <div class="modal-content p-8 rounded-xl shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-xl font-bold text-gray-200 mb-4">Confirm Submission</h2>
+            <p class="text-gray-400 mb-6">Are you certain you wish to submit this answer and proceed?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-yes-button" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300">
+                    Yes
+                </button>
+                <button id="confirm-no-button" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300">
+                    No
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Block -->
+    <script>
+        // Use an IIFE (Immediately Invoked Function Expression) to avoid polluting the global scope
+        (function() {
+            // --- Exam Data and State ---
+            // Simulating exam-data.json
+            const examData = {
+                questions: [
+                    {
+                        type: "multiple-choice",
+                        question: "What is the capital of France?",
+                        options: ["London", "Berlin", "Paris", "Rome"],
+                        correctAnswer: "Paris"
+                    },
+                    {
+                        type: "short-answer",
+                        question: "What is the main ingredient of guacamole?",
+                        correctAnswer: "avocado"
+                    },
+                    {
+                        type: "multiple-choice",
+                        question: "Which planet is known as the 'Red Planet'?",
+                        options: ["Jupiter", "Mars", "Venus", "Saturn"],
+                        correctAnswer: "Mars"
+                    },
+                    {
+                        type: "short-answer",
+                        question: "What is the largest ocean on Earth?",
+                        correctAnswer: "Pacific Ocean"
+                    },
+                    {
+                        type: "multiple-choice",
+                        question: "Which of the following is not a primary color?",
+                        options: ["Red", "Green", "Blue", "Yellow"],
+                        correctAnswer: "Green"
+                    }
+                ]
+            };
+
+            // Global state variables
+            let shuffledQuestions = [];
+            let currentQuestionIndex = 0;
+            let studentAnswers = [];
+            let score = 0;
+            let timerInterval;
+            let timeLeft = 600; // 10 minutes in seconds
+            let violationTimer;
+            let backgroundPositionX = 0;
+            let backgroundPositionY = 0;
+
+            // --- DOM Elements ---
+            const body = document.body;
+            const startScreen = document.getElementById('start-screen');
+            const examScreen = document.getElementById('exam-screen');
+            const startButton = document.getElementById('start-button');
+            const timerDisplay = document.getElementById('timer');
+            const scoreDisplay = document.getElementById('score');
+            const questionContainer = document.getElementById('question-container');
+            const violationModal = document.getElementById('violation-modal');
+            const continueButton = document.getElementById('continue-button');
+            const exitButton = document.getElementById('exit-button');
+            const confirmationModal = document.getElementById('confirmation-modal');
+            const confirmYesButton = document.getElementById('confirm-yes-button');
+            const confirmNoButton = document.getElementById('confirm-no-button');
+
+            // --- Functions ---
+
+            /**
+             * Handles the cursor-following background effect.
+             * @param {MouseEvent} e The mouse event object.
+             */
+            const handleMouseMove = (e) => {
+                const x = (e.clientX / window.innerWidth) * 100;
+                const y = (e.clientY / window.innerHeight) * 100;
+                body.style.backgroundPosition = `${x}% ${y}%`;
+            };
+
+            /**
+             * Shuffles an array using the Fisher-Yates algorithm.
+             * @param {Array} array The array to shuffle.
+             * @returns {Array} The shuffled array.
+             */
+            const shuffleArray = (array) => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            };
+
+            /**
+             * Renders the current question based on its type.
+             */
+            const renderQuestion = () => {
+                if (currentQuestionIndex >= shuffledQuestions.length) {
+                    finishExam();
+                    return;
+                }
+
+                const questionData = shuffledQuestions[currentQuestionIndex];
+                questionContainer.innerHTML = ''; // Clear previous content
+
+                const questionElement = document.createElement('h2');
+                questionElement.className = "text-2xl font-bold text-gray-200 mb-6";
+                questionElement.textContent = `Q${currentQuestionIndex + 1}. ${questionData.question}`;
+                questionContainer.appendChild(questionElement);
+
+                const answerSection = document.createElement('div');
+                answerSection.className = "space-y-4";
+
+                if (questionData.type === "multiple-choice") {
+                    questionData.options.forEach((option, index) => {
+                        const optionLabel = document.createElement('label');
+                        optionLabel.className = "flex items-center space-x-3 text-lg text-gray-400 p-3 rounded-lg hover:bg-red-900/30 transition-colors cursor-pointer";
+                        const optionInput = document.createElement('input');
+                        optionInput.type = "radio";
+                        optionInput.name = `question-${currentQuestionIndex}`;
+                        optionInput.value = option;
+                        optionInput.className = "form-radio h-5 w-5 text-red-600 focus:ring-red-500";
+                        optionLabel.appendChild(optionInput);
+                        optionLabel.appendChild(document.createTextNode(option));
+                        answerSection.appendChild(optionLabel);
+                    });
+                } else if (questionData.type === "short-answer") {
+                    const shortAnswerInput = document.createElement('input');
+                    shortAnswerInput.type = "text";
+                    shortAnswerInput.placeholder = "Answer...";
+                    shortAnswerInput.className = "w-full p-4 border border-gray-700 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all";
+                    shortAnswerInput.id = "short-answer-input";
+                    answerSection.appendChild(shortAnswerInput);
+                    // Add a keydown listener for "Enter" key
+                    shortAnswerInput.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            showConfirmationModal();
+                        }
+                    });
+                }
+
+                questionContainer.appendChild(answerSection);
+
+                const submitButton = document.createElement('button');
+                submitButton.textContent = "Submit Answer";
+                submitButton.className = "mt-6 bg-red-800 hover:bg-red-900 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105";
+                submitButton.onclick = showConfirmationModal;
+                questionContainer.appendChild(submitButton);
+            };
+
+            /**
+             * Shows the confirmation modal.
+             */
+            const showConfirmationModal = () => {
+                confirmationModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // Disable background scrolling
+            };
+
+            /**
+             * Hides the confirmation modal.
+             */
+            const hideConfirmationModal = () => {
+                confirmationModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Enable background scrolling
+            };
+
+            /**
+             * Submits the current question's answer and moves to the next.
+             */
+            const submitAnswer = () => {
+                let userAnswer = null;
+                const questionData = shuffledQuestions[currentQuestionIndex];
+
+                if (questionData.type === "multiple-choice") {
+                    const selectedOption = document.querySelector(`input[name="question-${currentQuestionIndex}"]:checked`);
+                    if (selectedOption) {
+                        userAnswer = selectedOption.value;
+                    }
+                } else if (questionData.type === "short-answer") {
+                    const shortAnswerInput = document.getElementById('short-answer-input');
+                    userAnswer = shortAnswerInput.value.trim().toLowerCase();
+                }
+
+                // Save the answer
+                studentAnswers.push({
+                    question: questionData.question,
+                    userAnswer: userAnswer,
+                    correctAnswer: questionData.correctAnswer
+                });
+                
+                // Move to the next question or finish
+                currentQuestionIndex++;
+                renderQuestion();
+                hideConfirmationModal();
+            };
+
+            /**
+             * Updates the timer display.
+             */
+            const updateTimer = () => {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishExam();
+                } else {
+                    timeLeft--;
+                }
+            };
+
+            /**
+             * Handles fullscreen exit and tab switching violations.
+             */
+            const handleViolation = () => {
+                if (violationModal.classList.contains('hidden')) {
+                    violationModal.classList.remove('hidden');
+                    // Automatically continue after 8 seconds
+                    violationTimer = setTimeout(() => {
+                        violationModal.classList.add('hidden');
+                        document.documentElement.requestFullscreen();
+                    }, 8000);
+                }
+            };
+
+            /**
+             * Ends the exam, calculates the score, and shows results.
+             */
+            const finishExam = () => {
+                // Stop the timer
+                clearInterval(timerInterval);
+                
+                // Calculate score
+                score = 0;
+                const results = studentAnswers.map(answer => {
+                    const isCorrect = (answer.userAnswer !== null && answer.userAnswer.toLowerCase() === answer.correctAnswer.toLowerCase());
+                    if (isCorrect) {
+                        score++;
+                    }
+                    return {
+                        question: answer.question,
+                        userAnswer: answer.userAnswer,
+                        correctAnswer: answer.correctAnswer,
+                        isCorrect: isCorrect
+                    };
+                });
+
+                // Display results
+                renderResults(results);
+            };
+            
+            /**
+             * Renders the final results screen.
+             * @param {Array} results The array of result objects.
+             */
+            const renderResults = (results) => {
+                examScreen.classList.remove('flex');
+                examScreen.classList.add('hidden');
+                
+                const resultsScreen = document.createElement('div');
+                resultsScreen.className = "card p-8 rounded-xl shadow-2xl w-full max-w-2xl text-center transition-opacity duration-500";
+                resultsScreen.innerHTML = `
+                    <h2 class="text-4xl font-extrabold text-green-500 mb-4 venom-title">Protocol Concluded!</h2>
+                    <p class="text-2xl text-gray-200 mb-2">Your Score: <span class="font-bold">${score} / ${shuffledQuestions.length}</span></p>
+                    <p class="text-lg text-gray-400 mb-8">Review your answers below. The symbiote has taken note of your performance.</p>
+                `;
+                
+                const resultsList = document.createElement('div');
+                resultsList.className = "text-left space-y-6 mb-8";
+                results.forEach((result, index) => {
+                    resultsList.innerHTML += `
+                        <div class="p-4 rounded-lg shadow-inner ${result.isCorrect ? 'bg-green-900/30' : 'bg-red-900/30'}">
+                            <p class="font-bold text-gray-200 mb-2">Q${index + 1}. ${result.question}</p>
+                            <p class="text-sm">Your Answer: <span class="font-semibold ${result.isCorrect ? 'text-green-500' : 'text-red-500'}">${result.userAnswer || 'No Answer'}</span></p>
+                            <p class="text-sm">Correct Answer: <span class="font-semibold text-gray-400">${result.correctAnswer}</span></p>
+                        </div>
+                    `;
+                });
+                
+                const saveForm = document.createElement('div');
+                saveForm.className = "mt-6 flex flex-col space-y-4 items-center";
+                saveForm.innerHTML = `
+                    <input type="text" id="student-name-input" placeholder="Enter your host name..." class="w-full p-3 border border-gray-700 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all">
+                    <button id="save-score-button" class="w-full bg-red-800 hover:bg-red-900 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105">
+                        Bond and Save Score
+                    </button>
+                `;
+
+                resultsScreen.appendChild(resultsList);
+                resultsScreen.appendChild(saveForm);
+                document.body.appendChild(resultsScreen);
+
+                document.getElementById('save-score-button').addEventListener('click', () => {
+                    const name = document.getElementById('student-name-input').value;
+                    if (name) {
+                        saveResult(name, score);
+                        document.getElementById('save-score-button').textContent = "Score Saved!";
+                        document.getElementById('save-score-button').disabled = true;
+                    }
+                });
+            };
+            
+            /**
+             * Saves the result to Google Sheets via the Apps Script Web App.
+             * @param {string} name The student's name.
+             * @param {number} score The final score.
+             */
+            const saveResult = (name, score) => {
+                // IMPORTANT: Replace this URL with your Google Apps Script Web App URL
+                const scriptURL = "https://script.google.com/macros/s/AKfycbwb8w9_iy8q97qzfmX4VOsH-YZt6872YRcfZVCAip6HQQlmqJ5FtVncQy7XeCkJMKHb/exec"; 
+                
+                fetch(scriptURL, {
+                    method: "POST",
+                    body: JSON.stringify({ name, score })
+                })
+                .then(res => res.text())
+                .then(msg => console.log("Saved:", msg))
+                .catch(err => console.error("Error:", err));
+            };
+
+            // --- Event Listeners for Exam Logic ---
+            startButton.addEventListener('click', () => {
+                // Request fullscreen
+                document.documentElement.requestFullscreen();
+
+                // Hide start screen and show exam screen
+                startScreen.classList.add('hidden');
+                examScreen.classList.remove('hidden');
+                examScreen.classList.add('flex');
+                
+                // Load and shuffle questions
+                shuffledQuestions = shuffleArray([...examData.questions]);
+
+                // Start the timer
+                updateTimer();
+                timerInterval = setInterval(updateTimer, 1000);
+
+                // Display the first question
+                renderQuestion();
+            });
+
+            // Confirmation modal buttons
+            confirmYesButton.addEventListener('click', submitAnswer);
+            confirmNoButton.addEventListener('click', hideConfirmationModal);
+            
+            // Confirmation modal keyboard support
+            document.addEventListener('keydown', (event) => {
+                if (confirmationModal.classList.contains('hidden')) return;
+                
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    submitAnswer();
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    hideConfirmationModal();
+                }
+            });
+
+            // Violation modal buttons
+            continueButton.addEventListener('click', () => {
+                clearTimeout(violationTimer);
+                violationModal.classList.add('hidden');
+                document.documentElement.requestFullscreen();
+            });
+            exitButton.addEventListener('click', () => {
+                clearTimeout(violationTimer);
+                violationModal.classList.add('hidden');
+                finishExam();
+            });
+
+            // --- Anti-Cheating Event Listeners ---
+            
+            // Disable right-click
+            document.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Block restricted keys
+            document.addEventListener('keydown', e => {
+                if (
+                    e.key === 'F5' ||
+                    (e.ctrlKey && e.key === 'r') ||
+                    e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'j')) ||
+                    (e.ctrlKey && e.key === 'u') ||
+                    (e.ctrlKey && e.key === 'c') ||
+                    (e.ctrlKey && e.key === 'v') ||
+                    (e.ctrlKey && e.key === 'x') ||
+                    (e.ctrlKey && e.key === 'a') ||
+                    (e.ctrlKey && e.key === 's')
+                ) {
+                    e.preventDefault();
+                    console.warn(`Blocked restricted key: ${e.key}`);
+                }
+            });
+
+            // Detect tab switching
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden' && !violationModal.classList.contains('hidden')) {
+                    handleViolation();
+                }
+            });
+
+            // Detect fullscreen exit
+            document.addEventListener('fullscreenchange', () => {
+                if (document.fullscreenElement === null && !violationModal.classList.contains('hidden')) {
+                    handleViolation();
+                }
+            });
+            // Also listen for Webkit prefixes for wider compatibility
+            document.addEventListener('webkitfullscreenchange', () => {
+                if (document.webkitFullscreenElement === null && !violationModal.classList.contains('hidden')) {
+                    handleViolation();
+                }
+            });
+
+            // Start cursor-following background effect on load
+            window.addEventListener('mousemove', handleMouseMove);
+            
+        })();
+    </script>
+</body>
+</html>
